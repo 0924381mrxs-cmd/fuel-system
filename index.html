@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>نظام تنظيم الوقود</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  direction: rtl;
+  background: #f2f5f7;
+  color: #17202a;
+}
+
+.app {
+  max-width: 500px;
+  margin: auto;
+  min-height: 100vh;
+}
+
+header {
+  background: #0d6b45;
+  color: white;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-radius: 0 0 25px 25px;
+}
+
+.logo {
+  width: 55px;
+  height: 55px;
+  background: white;
+  color: #0d6b45;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+
+h1 {
+  margin: 0 0 5px;
+  font-size: 21px;
+}
+
+header p {
+  margin: 0;
+  opacity: .85;
+}
+
+main {
+  padding: 18px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: 0 5px 20px rgba(0,0,0,.07);
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  margin-bottom: 9px;
+  font-weight: bold;
+}
+
+input {
+  width: 100%;
+  padding: 15px;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  font-size: 18px;
+  outline: none;
+  direction: rtl;
+}
+
+input:focus {
+  border-color: #0d6b45;
+}
+
+button {
+  width: 100%;
+  margin-top: 12px;
+  padding: 15px;
+  border: none;
+  border-radius: 12px;
+  background: #0d6b45;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:active {
+  transform: scale(.98);
+}
+
+#result {
+  margin-top: 15px;
+}
+
+.success,
+.danger,
+.warning {
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: bold;
+  line-height: 1.7;
+}
+
+.success {
+  background: #e6f7ed;
+  color: #08733f;
+}
+
+.danger {
+  background: #ffe8e8;
+  color: #b00020;
+}
+
+.warning {
+  background: #fff4d6;
+  color: #8a6200;
+}
+
+.record-btn {
+  background: #08733f;
+  margin-top: 12px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stats div {
+  background: white;
+  padding: 18px 10px;
+  text-align: center;
+  border-radius: 16px;
+  box-shadow: 0 5px 15px rgba(0,0,0,.05);
+}
+
+.stats strong {
+  display: block;
+  font-size: 27px;
+  color: #0d6b45;
+}
+
+.stats span {
+  display: block;
+  margin-top: 5px;
+  color: #666;
+}
+
+h2 {
+  font-size: 18px;
+  margin-top: 0;
+}
+
+.history-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.car {
+  font-weight: bold;
+  font-size: 17px;
+}
+
+.time {
+  color: #777;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.empty {
+  text-align: center;
+  color: #888;
+  padding: 15px;
+}
+
+footer {
+  text-align: center;
+  color: #777;
+  font-size: 13px;
+  padding: 10px 20px 25px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+  <div class="logo">⛽</div>
+
+  <div>
+    <h1>نظام تنظيم الوقود</h1>
+    <p>التحقق من تعبئة المركبات</p>
+  </div>
+</header>
+
+<main>
+
+<div class="card">
+
+<label>رقم السيارة</label>
+
+<input
+  id="carNumber"
+  type="text"
+  placeholder="مثال: أ ب 12345"
+  autocomplete="off"
+>
+
+<button id="checkBtn">
+🔍 تحقق من السيارة
+</button>
+
+<div id="result"></div>
+
+</div>
+
+<div class="stats">
+
+<div>
+<strong id="todayCount">0</strong>
+<span>تعبئة اليوم</span>
+</div>
+
+<div>
+<strong id="totalCount">0</strong>
+<span>إجمالي السجلات</span>
+</div>
+
+</div>
+
+<div class="card history-card">
+
+<h2>آخر عمليات التعبئة</h2>
+
+<div id="history"></div>
+
+</div>
+
+</main>
+
+<footer>
+نظام تجريبي لتنظيم صرف الوقود
+</footer>
+
+</div>
+
+<script>
+
+const input = document.getElementById("carNumber");
+const checkBtn = document.getElementById("checkBtn");
+const result = document.getElementById("result");
+const historyBox = document.getElementById("history");
+const todayCount = document.getElementById("todayCount");
+const totalCount = document.getElementById("totalCount");
+
+let records = JSON.parse(
+  localStorage.getItem("fuelRecords")
+) || [];
+
+function normalizeNumber(number) {
+
+  return number
+    .trim()
+    .replace(/\s+/g, " ")
+    .toUpperCase();
+
+}
+
+function today() {
+
+  const d = new Date();
+
+  return d.getFullYear() + "-" +
+    String(d.getMonth() + 1).padStart(2, "0") + "-" +
+    String(d.getDate()).padStart(2, "0");
+
+}
+
+function saveRecords() {
+
+  localStorage.setItem(
+    "fuelRecords",
+    JSON.stringify(records)
+  );
+
+}
+
+function alreadyFilled(carNumber) {
+
+  const day = today();
+
+  return records.find(record =>
+    record.car === carNumber &&
+    record.date === day
+  );
+
+}
+
+function formatTime(date) {
+
+  return new Date(date).toLocaleTimeString(
+    "ar-SD",
+    {
+      hour: "2-digit",
+      minute: "2-digit"
+    }
+  );
+
+}
+
+function updateStats() {
+
+  const day = today();
+
+  const count = records.filter(
+    record => record.date === day
+  ).length;
+
+  todayCount.textContent = count;
+  totalCount.textContent = records.length;
+
+}
+
+function showHistory() {
+
+  if (records.length === 0) {
+
+    historyBox.innerHTML =
+      '<div class="empty">لا توجد عمليات تعبئة</div>';
+
+    return;
+  }
+
+  const latest = [...records]
+    .reverse()
+    .slice(0, 10);
+
+  historyBox.innerHTML = latest.map(record => `
+
+    <div class="history-item">
+
+      <div class="car">
+        🚗 ${record.car}
+      </div>
+
+      <div class="time">
+        ${record.date} - ${formatTime(record.time)}
+      </div>
+
+    </div>
+
+  `).join("");
+
+}
+
+function recordFuel(carNumber) {
+
+  if (alreadyFilled(carNumber)) {
+
+    checkCar();
+    return;
+
+  }
+
+  const now = new Date();
+
+  records.push({
+
+    car: carNumber,
+    date: today(),
+    time: now.toISOString()
+
+  });
+
+  saveRecords();
+
+  result.innerHTML = `
+
+    <div class="success">
+
+      ✅ تم تسجيل تعبئة السيارة بنجاح.
+
+      <br>
+
+      لا يمكن تسجيل تعبئة أخرى
+      لهذه السيارة اليوم.
+
+    </div>
+
+  `;
+
+  input.value = "";
+
+  updateStats();
+  showHistory();
+
+}
+
+function checkCar() {
+
+  const carNumber =
+    normalizeNumber(input.value);
+
+  if (!carNumber) {
+
+    result.innerHTML = `
+
+      <div class="warning">
+
+        ⚠️ الرجاء إدخال رقم السيارة أولاً.
+
+      </div>
+
+    `;
+
+    return;
+  }
+
+  const existing =
+    alreadyFilled(carNumber);
+
+  if (existing) {
+
+    result.innerHTML = `
+
+      <div class="danger">
+
+        🔴 هذه السيارة تم تسجيل تعبئتها اليوم.
+
+        <br>
+
+        وقت التعبئة:
+        ${formatTime(existing.time)}
+
+      </div>
+
+    `;
+
+  } else {
+
+    result.innerHTML = `
+
+      <div class="success">
+
+        🟢 لم يتم تسجيل تعبئة
+        لهذه السيارة اليوم.
+
+        <button
+          class="record-btn"
+          onclick="recordFuel('${carNumber.replace(/'/g, "\\'")}')">
+
+          ⛽ تسجيل التعبئة
+
+        </button>
+
+      </div>
+
+    `;
+
+  }
+
+}
+
+checkBtn.addEventListener(
+  "click",
+  checkCar
+);
+
+input.addEventListener(
+  "keydown",
+  function(event) {
+
+    if (event.key === "Enter") {
+
+      checkCar();
+
+    }
+
+  }
+);
+
+updateStats();
+showHistory();
+
+</script>
+
+</body>
+</html>
